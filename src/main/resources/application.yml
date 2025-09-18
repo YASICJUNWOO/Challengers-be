@@ -1,0 +1,33 @@
+
+spring:
+  application:
+    name: habit-challenge
+
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  h2:
+    console:
+      enabled: true
+
+jwt:
+  secret: rU5jD7yJf9uB1mYpGxTqN8vFzWc2hR7tKj6pX1aQ4zL9oE3sH5vU7yW8xC9dZ2qB
+  expiration: 86400000
+
+logging:
+  level:
+    com.habitchallenge: DEBUG
+server:
+  port: 8888
