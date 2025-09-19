@@ -12,13 +12,8 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import jakarta.persistence.EntityManager
-import jakarta.persistence.PersistenceContext
 import java.time.LocalDate
-import java.time.LocalDateTime
 import kotlin.random.Random
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.jvm.isAccessible
 
 @Service
 @Transactional(readOnly = true)
@@ -26,12 +21,10 @@ class ChallengeService(
     private val challengeRepository: ChallengeRepository,
     private val participationRepository: ParticipationRepository,
     private val challengeApplicationRepository: ChallengeApplicationRepository,
+    private val challengeLogRepository: com.habitchallenge.domain.challengelog.ChallengeLogRepository,
     private val notificationService: NotificationService,
     private val userService: UserService
 ) {
-
-    @PersistenceContext
-    private lateinit var entityManager: EntityManager
 
     @Transactional
     fun createChallenge(
@@ -153,38 +146,23 @@ class ChallengeService(
 
         validateChallengeData(finalStartDate, finalEndDate, finalMaxMembers)
 
-        // Use EntityManager to create a managed copy with same ID
-        // Detach the existing entity first to avoid conflicts
-        entityManager.detach(existingChallenge)
-
-        // Create updated entity with same ID using reflection approach
-        val updatedChallenge = Challenge(
-            name = name ?: existingChallenge.name,
-            description = description ?: existingChallenge.description,
-            category = category ?: existingChallenge.category,
-            difficulty = difficulty ?: existingChallenge.difficulty,
-            duration = duration ?: existingChallenge.duration,
-            startDate = finalStartDate,
-            endDate = finalEndDate,
-            maxMembers = finalMaxMembers,
-            leader = existingChallenge.leader,
-            status = existingChallenge.status,
-            coverImageUrl = coverImageUrl ?: existingChallenge.coverImageUrl,
-            reward = reward ?: existingChallenge.reward,
-            tags = tags ?: existingChallenge.tags,
-            isPrivate = existingChallenge.isPrivate,
-            inviteCode = existingChallenge.inviteCode,
-            leaderRole = existingChallenge.leaderRole
+        // Use the entity's update method for clean updates
+        val updatedChallenge = existingChallenge.updateWith(
+            name = name,
+            description = description,
+            category = category,
+            difficulty = difficulty,
+            duration = duration,
+            startDate = startDate,
+            endDate = endDate,
+            maxMembers = maxMembers,
+            coverImageUrl = coverImageUrl,
+            reward = reward,
+            tags = tags
         )
 
-        // Use reflection to set the ID field preserving the original ID
-        setEntityId(updatedChallenge, existingChallenge.id)
-
-        // Use reflection to set audit fields to preserve them
-        setEntityAuditFields(updatedChallenge, existingChallenge.createdAt, existingChallenge.updatedAt)
-
-        // Use merge instead of save to ensure update instead of insert
-        return entityManager.merge(updatedChallenge)
+        // Save using standard JPA repository - dirty checking will handle the update
+        return challengeRepository.save(updatedChallenge)
     }
 
     @Transactional
@@ -554,33 +532,152 @@ class ChallengeService(
             ?: throw NoSuchElementException("유효하지 않은 초대 코드입니다: $inviteCode")
     }
 
-    /**
-     * Reflection helper to set entity ID while preserving immutability design
-     */
-    private fun setEntityId(entity: Any, id: Long?) {
-        try {
-            val idField = entity::class.java.getDeclaredField("id")
-            idField.isAccessible = true
-            idField.set(entity, id)
-        } catch (e: Exception) {
-            throw RuntimeException("Failed to set entity ID via reflection", e)
+    // New Methods for Statistics
+
+    fun getMemberStats(challengeId: Long, currentUser: User): List<com.habitchallenge.presentation.dto.MemberStatsResponse> {
+        val challenge = findById(challengeId)
+
+        // Permission check
+        if (!canUserViewChallenge(currentUser, challenge)) {
+            throw IllegalArgumentException("챌린지 통계를 볼 권한이 없습니다.")
+        }
+
+        val members = getChallengeMembers(challengeId)
+
+        return members.map { participation ->
+            val user = participation.user
+            val allLogs = challengeLogRepository.findByUserAndChallenge(user, challenge)
+            val approvedLogs = allLogs.filter { it.isApproved() }
+
+            val totalSubmissions = allLogs.size
+            val approvedSubmissions = approvedLogs.size
+            val achievementRate = if (totalSubmissions > 0) {
+                (approvedSubmissions.toDouble() / totalSubmissions.toDouble()) * 100.0
+            } else {
+                0.0
+            }
+
+            // Calculate streak
+            val streak = calculateStreak(user, challenge)
+
+            // Last submission date
+            val lastSubmissionDate = allLogs.maxByOrNull { it.createdAt }?.createdAt
+
+            com.habitchallenge.presentation.dto.MemberStatsResponse(
+                memberId = user.id.toString(),
+                streak = streak,
+                achievementRate = achievementRate,
+                totalSubmissions = totalSubmissions,
+                approvedSubmissions = approvedSubmissions,
+                lastSubmissionDate = lastSubmissionDate
+            )
         }
     }
 
-    /**
-     * Reflection helper to set audit fields while preserving immutability design
-     */
-    private fun setEntityAuditFields(entity: Any, createdAt: LocalDateTime, updatedAt: LocalDateTime) {
-        try {
-            val createdAtField = entity::class.java.getDeclaredField("createdAt")
-            createdAtField.isAccessible = true
-            createdAtField.set(entity, createdAt)
+    fun getParticipationStats(
+        challengeId: Long,
+        currentUser: User,
+        userId: Long?,
+        startDate: LocalDate?,
+        endDate: LocalDate?
+    ): List<com.habitchallenge.presentation.dto.ParticipationStatsResponse> {
+        val challenge = findById(challengeId)
 
-            val updatedAtField = entity::class.java.getDeclaredField("updatedAt")
-            updatedAtField.isAccessible = true
-            updatedAtField.set(entity, updatedAt)
-        } catch (e: Exception) {
-            throw RuntimeException("Failed to set audit fields via reflection", e)
+        // Permission check
+        if (!canUserViewChallenge(currentUser, challenge)) {
+            throw IllegalArgumentException("챌린지 참여율 통계를 볼 권한이 없습니다.")
         }
+
+        val actualStartDate = startDate ?: challenge.startDate
+        val actualEndDate = endDate ?: challenge.endDate.let { if (it.isAfter(LocalDate.now())) LocalDate.now() else it }
+
+        val members = getChallengeMembers(challengeId)
+        val totalUserCount = members.size
+
+        // Get target user if userId filter is provided
+        val targetUser = userId?.let { userService.findById(it) }
+
+        val result = mutableListOf<com.habitchallenge.presentation.dto.ParticipationStatsResponse>()
+
+        var currentDate = actualStartDate
+        while (!currentDate.isAfter(actualEndDate)) {
+            val dayStartDateTime = currentDate.atStartOfDay()
+            val dayEndDateTime = currentDate.plusDays(1).atStartOfDay()
+
+            // Count submissions for this day
+            val dailySubmissions = challengeLogRepository.findByUserAndChallenge(currentUser, challenge)
+                .count { log ->
+                    val logDate = log.createdAt.toLocalDate()
+                    logDate.isEqual(currentDate)
+                }
+
+            // Calculate participation rate for this day
+            var participantsCount = 0
+            var userParticipated: Boolean? = null
+
+            for (participation in members) {
+                val hasSubmission = challengeLogRepository.existsByUserAndChallengeAndCreatedAtBetween(
+                    participation.user, challenge, dayStartDateTime, dayEndDateTime
+                )
+                if (hasSubmission) {
+                    participantsCount++
+                }
+
+                // Check if this is the target user
+                if (targetUser != null && participation.user.id == targetUser.id) {
+                    userParticipated = hasSubmission
+                }
+            }
+
+            val participationRate = if (totalUserCount > 0) {
+                (participantsCount.toDouble() / totalUserCount.toDouble()) * 100.0
+            } else {
+                0.0
+            }
+
+            result.add(
+                com.habitchallenge.presentation.dto.ParticipationStatsResponse(
+                    date = currentDate.toString(),
+                    participated = userParticipated,
+                    participationRate = participationRate,
+                    submissions = dailySubmissions,
+                    userCount = totalUserCount
+                )
+            )
+
+            currentDate = currentDate.plusDays(1)
+        }
+
+        return result
+    }
+
+    private fun calculateStreak(user: User, challenge: Challenge): Int {
+        val logs = challengeLogRepository.findByUserAndChallenge(user, challenge)
+            .filter { it.isApproved() }
+            .sortedBy { it.createdAt }
+
+        if (logs.isEmpty()) return 0
+
+        var streak = 0
+        var lastDate: LocalDate? = null
+
+        for (log in logs) {
+            val logDate = log.createdAt.toLocalDate()
+
+            if (lastDate == null) {
+                streak = 1
+                lastDate = logDate
+            } else {
+                if (logDate.isEqual(lastDate.plusDays(1))) {
+                    streak++
+                    lastDate = logDate
+                } else if (!logDate.isEqual(lastDate)) {
+                    streak = 1
+                    lastDate = logDate
+                }
+            }
+        }
+
+        return streak
     }
 }

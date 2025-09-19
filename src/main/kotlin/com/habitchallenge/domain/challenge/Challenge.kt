@@ -98,3 +98,48 @@ fun Challenge.start() {
 fun Challenge.complete() {
     this.status = ChallengeStatus.COMPLETED
 }
+
+/**
+ * Challenge 엔티티 업데이트 메서드
+ * 변경이 필요한 필드만 새로운 값으로 업데이트하고, 나머지는 기존 값 유지
+ * JPA dirty checking을 위해 새로운 인스턴스를 반환하되 ID는 기존 것을 유지
+ */
+fun Challenge.updateWith(
+    name: String? = null,
+    description: String? = null,
+    category: ChallengeCategory? = null,
+    difficulty: ChallengeDifficulty? = null,
+    duration: Int? = null,
+    startDate: LocalDate? = null,
+    endDate: LocalDate? = null,
+    maxMembers: Int? = null,
+    coverImageUrl: String? = null,
+    reward: String? = null,
+    tags: Set<String>? = null
+): Challenge {
+    val updated = Challenge(
+        name = name ?: this.name,
+        description = description ?: this.description,
+        category = category ?: this.category,
+        difficulty = difficulty ?: this.difficulty,
+        duration = duration ?: this.duration,
+        startDate = startDate ?: this.startDate,
+        endDate = endDate ?: this.endDate,
+        maxMembers = maxMembers ?: this.maxMembers,
+        leader = this.leader,
+        status = this.status,
+        coverImageUrl = coverImageUrl ?: this.coverImageUrl,
+        reward = reward ?: this.reward,
+        isPrivate = this.isPrivate,
+        inviteCode = this.inviteCode,
+        leaderRole = this.leaderRole,
+        tags = tags ?: this.tags
+    )
+
+    // ID와 audit 필드를 기존 엔티티에서 복사
+    updated.id = this.id
+    updated.createdAt = this.createdAt
+    updated.updatedAt = this.updatedAt
+
+    return updated
+}

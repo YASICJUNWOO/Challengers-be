@@ -29,5 +29,19 @@ jwt:
 logging:
   level:
     com.habitchallenge: DEBUG
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+  info:
+    title: "Challenge MVP Backend API"
+    description: "Spring Boot REST API for habit and goal management SNS platform"
+    version: "1.7.0"
+
 server:
   port: 8888

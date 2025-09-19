@@ -321,6 +321,28 @@ challenge_groups (1) ←→ (1) users [leader_id]
   - JoinChallengeByInviteCodeRequest DTO 추가
   - 입력 검증 및 오류 메시지 한글화
 
+### v1.7.0 (2025-09-19): 챌린지 통계 API 시스템 구현 ✅
+- ✅ **멤버 통계 API**: GET /api/challenges/{id}/members/stats 엔드포인트 구현
+  - 챌린지 멤버별 연속 참여일(Streak), 달성률, 총 제출/승인 횟수 제공
+  - 마지막 제출일 정보 포함한 상세 통계 데이터
+  - 권한 기반 접근 제어 (챌린지 조회 권한 필요)
+- ✅ **참여율 통계 API**: GET /api/challenges/{id}/participation 엔드포인트 구현
+  - 일별 참여율, 제출 수, 전체 참여자 수 데이터 제공
+  - userId 필터: 특정 사용자의 개인 참여 여부 확인 기능
+  - 날짜 범위 필터: startDate, endDate 쿼리 파라미터 지원
+  - 챌린지 기간 내 모든 날짜에 대한 통계 생성
+- ✅ **MemberStatsDto.kt**: 통계 응답 전용 DTO 클래스 생성
+  - MemberStatsResponse: 멤버별 통계 데이터 구조
+  - ParticipationStatsResponse: 참여율 통계 데이터 구조
+  - JSON 시간 형식 표준화 (@JsonFormat 적용)
+- ✅ **ChallengeService 확장**: 통계 관련 비즈니스 로직 구현
+  - getMemberStats: 멤버별 통계 계산 및 권한 검증
+  - getParticipationStats: 일별 참여율 통계 생성
+  - calculateStreak: 연속 참여일 계산 알고리즘 구현
+  - ChallengeLogRepository 의존성 추가
+- ✅ **ChallengeController 확장**: 2개 신규 통계 엔드포인트 라우팅
+- ✅ **API_PROTOCOL.md 업데이트**: 신규 API 스펙 문서화 및 변경 로그 추가
+
 ### v1.6.1 (2025-09-19): 회원가입 API 이메일 필드 지원 ✅
 - ✅ **SignupRequest DTO 확장**: 이메일 필드 추가 및 검증 규칙 적용
   - `email` 필드 추가 (유효한 이메일 형식 검증)
@@ -347,6 +369,21 @@ challenge_groups (1) ←→ (1) users [leader_id]
   - 읽지 않은 알림 개수 조회
 - ✅ **Spring Data 표준 반영**: Page<T> 페이지네이션 구조 정확히 문서화
 - ✅ **검증 규칙 포함**: @Valid 애노테이션 기반 입력 검증 규칙 완전 반영
+
+### v1.8.0 (2025-09-19): Swagger UI Documentation System ✅
+- ✅ **SpringDoc OpenAPI 의존성 추가**: `springdoc-openapi-starter-webmvc-ui:2.2.0` Spring Boot 3.x 호환 버전 적용
+- ✅ **Swagger UI 설정**: application.yml에 API 문서화 관련 설정 추가
+  - `/swagger-ui.html` 경로에서 Swagger UI 접근 가능
+  - `/v3/api-docs` OpenAPI JSON 스펙 엔드포인트 제공
+  - API 제목, 설명, 버전 정보 설정 (Challenge MVP Backend API v1.7.0)
+  - 정렬 옵션 활성화 (operations-sorter, tags-sorter)
+- ✅ **Security 설정 업데이트**: SecurityConfig에서 Swagger 관련 엔드포인트 public 접근 허용
+  - `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html` 경로 permitAll() 설정
+  - 인증 없이 API 문서 열람 및 테스트 가능
+- ✅ **API 문서화 환경 구축**: 프로젝트 내 모든 REST API 자동 문서화 및 테스트 환경 제공
+  - 5개 컨트롤러 (Auth, User, Challenge, ChallengeLog, Notification) 전체 문서화
+  - Request/Response 스키마 자동 생성
+  - API 테스트 및 검증 기능 포함
 
 ## Deployment Notes
 - **Docker Support**: 향후 컨테이너화 예정

@@ -505,6 +505,49 @@
   }
   ```
 
+### GET /api/challenges/{id}/members/stats
+- **Description**: 챌린지 멤버별 통계 조회 (Streak, 달성률)
+- **Headers**
+  - Authorization: Bearer {token}
+- **Request Params**
+  - id: number (챌린지 ID)
+- **Response Body**
+  ```typescript
+  [
+    {
+      memberId: string;              // 멤버 ID
+      streak: number;                // 연속 참여일 수
+      achievementRate: number;       // 달성률 (0-100)
+      totalSubmissions: number;      // 총 제출 횟수
+      approvedSubmissions: number;   // 승인된 제출 횟수
+      lastSubmissionDate?: string;   // 마지막 제출일 (ISO 8601)
+    }
+  ]
+  ```
+
+### GET /api/challenges/{id}/participation
+- **Description**: 챌린지 참여율 데이터 조회
+- **Headers**
+  - Authorization: Bearer {token}
+- **Request Params**
+  - id: number (챌린지 ID)
+- **Query Parameters**
+  - userId?: number (특정 사용자 필터 - 개인 참여율 조회용)
+  - startDate?: string (시작일 필터, YYYY-MM-DD 형식)
+  - endDate?: string (종료일 필터, YYYY-MM-DD 형식)
+- **Response Body**
+  ```typescript
+  [
+    {
+      date: string;                  // 날짜 (YYYY-MM-DD)
+      participated?: boolean;        // 개인 참여 여부 (userId 지정 시만)
+      participationRate: number;     // 전체 참여율 (0-100)
+      submissions: number;           // 해당 날짜 총 제출 수
+      userCount: number;             // 총 참여자 수
+    }
+  ]
+  ```
+
 ---
 
 ## 챌린지 로그 (Challenge Logs)
@@ -725,6 +768,18 @@
 ---
 
 ## 변경 로그
+
+### 2025-09-19 19:30 KST: 챌린지 통계 API 엔드포인트 추가 ✅
+- ✅ **GET /api/challenges/{id}/members/stats**: 챌린지 멤버별 통계 조회 (Streak, 달성률)
+  - 멤버별 연속 참여일, 달성률, 총 제출/승인 횟수, 마지막 제출일 제공
+  - 권한 확인: 챌린지 조회 권한이 있는 사용자만 접근 가능
+- ✅ **GET /api/challenges/{id}/participation**: 챌린지 참여율 데이터 조회
+  - 일별 참여율, 제출 수, 전체 참여자 수 제공
+  - userId 필터: 특정 사용자의 개인 참여 여부 확인 가능
+  - 날짜 범위 필터: startDate, endDate로 조회 기간 제한 가능
+- ✅ **MemberStatsDto.kt**: 통계 응답 DTO 클래스 추가
+- ✅ **ChallengeService 확장**: getMemberStats, getParticipationStats 메소드 구현
+- ✅ **ChallengeController 확장**: 2개 신규 엔드포인트 라우팅 추가
 
 ### 2025-09-19 18:00 KST: 회원가입 API 이메일 필드 추가 ✅
 - ✅ **회원가입 Request Body 확장**: `email` 필드 추가 (유효한 이메일 형식 검증)

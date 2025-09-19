@@ -9,6 +9,7 @@ import com.habitchallenge.domain.challenge.LeaderRole
 import com.habitchallenge.domain.challengeapplication.ApplicationStatus
 import com.habitchallenge.domain.user.User
 import com.habitchallenge.presentation.dto.*
+import java.time.LocalDate
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
@@ -313,5 +314,31 @@ class ChallengeController(
 
         val response = ChallengeApplicationResponse.from(application)
         return ResponseEntity.ok(response)
+    }
+
+    // Statistics Endpoints
+
+    @GetMapping("/{id}/members/stats")
+    fun getMemberStats(
+        @PathVariable id: Long,
+        @AuthenticationPrincipal user: User
+    ): ResponseEntity<List<MemberStatsResponse>> {
+        val stats = challengeService.getMemberStats(id, user)
+        return ResponseEntity.ok(stats)
+    }
+
+    @GetMapping("/{id}/participation")
+    fun getParticipationStats(
+        @PathVariable id: Long,
+        @RequestParam(required = false) userId: Long?,
+        @RequestParam(required = false) startDate: String?,
+        @RequestParam(required = false) endDate: String?,
+        @AuthenticationPrincipal user: User
+    ): ResponseEntity<List<ParticipationStatsResponse>> {
+        val parsedStartDate = startDate?.let { LocalDate.parse(it) }
+        val parsedEndDate = endDate?.let { LocalDate.parse(it) }
+
+        val stats = challengeService.getParticipationStats(id, user, userId, parsedStartDate, parsedEndDate)
+        return ResponseEntity.ok(stats)
     }
 }
