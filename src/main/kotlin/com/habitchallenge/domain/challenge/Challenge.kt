@@ -42,7 +42,7 @@ class Challenge(
     @Column(nullable = false)
     var status: ChallengeStatus = ChallengeStatus.RECRUITING,
 
-    @Column(name = "cover_image_url")
+    @Column(name = "cover_image_url", columnDefinition = "TEXT")
     val coverImageUrl: String? = null,
 
     @Column(name = "reward", length = 500)

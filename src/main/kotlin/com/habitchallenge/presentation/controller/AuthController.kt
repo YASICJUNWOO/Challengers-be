@@ -22,6 +22,7 @@ class AuthController(
     @PostMapping("/signup")
     fun signup(@Valid @RequestBody request: SignupRequest): ResponseEntity<AuthResponse> {
         val user = userService.createUser(
+            email = request.email,
             loginId = request.loginId,
             password = request.password,
             nickname = request.nickname,

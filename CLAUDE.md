@@ -28,6 +28,7 @@ This is the **Challenge MVP Backend** - a Spring Boot REST API service for habit
 #### 1. 스펙 문서 파일들
 - **`ENTITY_SPEC.md`**: 데이터베이스 엔티티 스펙 (버전 관리)
 - **`API_SPEC.md`**: REST API 엔드포인트 스펙 (버전 관리)
+- **`API_PROTOCOL.md`**: 백엔드 실제 구현 API 프로토콜 (버전 관리)
 - **`CLAUDE.md`**: 프로젝트 전체 가이드라인 및 변경 이력
 
 #### 2. 변경 사항 적용 순서 (필수)
@@ -38,15 +39,23 @@ This is the **Challenge MVP Backend** - a Spring Boot REST API service for habit
 2. ENTITY_SPEC.md 업데이트 (필요시) - 엔티티 변경 사항
 3. API_SPEC.md 업데이트 (필요시) - API 변경 사항
 4. 실제 코드 구현 (엔티티 → 서비스 → 컨트롤러 → 테스트)
-5. 통합 테스트 및 검증
+5. API_PROTOCOL.md 업데이트 (필수) - 백엔드 실제 구현 반영
+6. 통합 테스트 및 검증
 ```
 
-#### 3. 버전 관리 규칙
+#### 3. API 관리 규칙 (필수)
+**중요**: API/Request/Response 변경 발생 시 다음 문서들을 반드시 최신화해야 함:
+- **`API_PROTOCOL.md`**: 백엔드 실제 구현 변경사항 즉시 반영
+- **`API_SPEC.md`**: 계획된 API 스펙 변경사항 반영 (필요시)
+
+API 불일치로 인한 프론트엔드-백엔드 호환성 문제를 방지하기 위해 모든 API 변경사항은 문서화 필수.
+
+#### 4. 버전 관리 규칙
 - **Major Version** (x.0.0): 호환성이 깨지는 변경 (엔티티 구조 대폭 변경, API 스펙 변경)
 - **Minor Version** (x.y.0): 새로운 기능 추가 (새 엔티티, 새 API 엔드포인트)
 - **Patch Version** (x.y.z): 버그 수정, 성능 개선
 
-#### 4. 스펙 문서 업데이트 규칙
+#### 5. 스펙 문서 업데이트 규칙
 각 스펙 문서는 다음 정보를 반드시 포함해야 함:
 - **Version**: 현재 버전 번호
 - **Last Updated**: 최종 수정 날짜
@@ -312,6 +321,33 @@ challenge_groups (1) ←→ (1) users [leader_id]
   - JoinChallengeByInviteCodeRequest DTO 추가
   - 입력 검증 및 오류 메시지 한글화
 
+### v1.6.1 (2025-09-19): 회원가입 API 이메일 필드 지원 ✅
+- ✅ **SignupRequest DTO 확장**: 이메일 필드 추가 및 검증 규칙 적용
+  - `email` 필드 추가 (유효한 이메일 형식 검증)
+  - `loginId` 검증 규칙 수정 (2-20자, 영문/숫자/언더스코어/하이픈만 허용)
+- ✅ **User Entity 업데이트**: 이메일 필드 추가 및 Unique 제약 조건 설정
+- ✅ **UserService 확장**: 이메일 중복 검사 및 사용자 생성 로직 개선
+- ✅ **AuthController 수정**: 회원가입 엔드포인트에서 이메일 필드 처리
+- ✅ **UserRepository 확장**: `existsByEmail` 메소드 추가
+- ✅ **API_PROTOCOL.md 업데이트**: 회원가입 API 스펙 최신화
+- ✅ **프론트엔드 호환성**: 프론트엔드 요구사항에 맞춘 API 구조 완성
+
+### v1.6.0 (2025-09-19): Backend API Protocol Documentation System ✅
+- ✅ **API_PROTOCOL.md 생성**: 백엔드 실제 구현 기준 API 문서화 시스템 구축
+  - 5개 컨트롤러, 27개 엔드포인트 완전 문서화
+  - 프론트엔드와 동일한 Headers/Request/Response 통합 구조 적용
+  - Kotlin DTO 클래스 기반 정확한 타입 정의
+- ✅ **API 관리 규칙 추가**: CLAUDE.md에 API 변경 시 필수 문서화 규칙 추가
+  - API/Request/Response 변경 시 API_PROTOCOL.md 즉시 업데이트 필수
+  - 프론트엔드-백엔드 API 호환성 문제 예방 시스템
+- ✅ **백엔드 전용 기능 문서화**: 프론트엔드에 없는 추가 기능들 포함
+  - 추가 사용자 관리 엔드포인트 (GET /api/users, /api/users/me/challenges 등)
+  - 다양한 챌린지 참여 방식 (초대코드, 사용자ID 등)
+  - 확장된 알림 타입 (new_challenge_log, daily_reminder 등)
+  - 읽지 않은 알림 개수 조회
+- ✅ **Spring Data 표준 반영**: Page<T> 페이지네이션 구조 정확히 문서화
+- ✅ **검증 규칙 포함**: @Valid 애노테이션 기반 입력 검증 규칙 완전 반영
+
 ## Deployment Notes
 - **Docker Support**: 향후 컨테이너화 예정
 - **CI/CD**: GitHub Actions 파이프라인 구축 예정
@@ -337,7 +373,11 @@ challenge_groups (1) ←→ (1) users [leader_id]
    - 업데이트된 스펙 문서를 기준으로 코드 작성
    - 스펙과 코드 간 일치성 유지
 
-4. **검증 및 테스트**
+4. **API_PROTOCOL.md 업데이트 (필수)**
+   - 백엔드 실제 구현사항을 API_PROTOCOL.md에 즉시 반영
+   - 프론트엔드-백엔드 API 호환성 확보
+
+5. **검증 및 테스트**
    - 변경사항에 대한 단위/통합 테스트 수행
    - API 호환성 검증
 

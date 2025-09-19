@@ -9,6 +9,9 @@ import org.springframework.security.core.userdetails.UserDetails
 @Entity
 @Table(name = "users")
 class User(
+    @Column(unique = true, nullable = false)
+    val email: String,
+
     @Column(unique = true, nullable = false, name = "login_id")
     val loginId: String,
 

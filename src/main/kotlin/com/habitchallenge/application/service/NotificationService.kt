@@ -157,14 +157,14 @@ class NotificationService(
     }
 
     @Transactional
-    fun createApplicationApprovedNotification(userId: Long, applicationId: String, challengeName: String): Notification {
+    fun createApplicationApprovedNotification(userId: Long, applicationId: String, challengeName: String, challengeId: String): Notification {
         return createNotification(
             userId = userId,
             type = NotificationType.APPLICATION_APPROVED,
             title = "그룹 참여 신청 승인",
             message = "'${challengeName}' 그룹 참여 신청이 승인되었습니다. 이제 챌린지에 참여할 수 있습니다!",
             relatedId = applicationId,
-            actionUrl = "/challenges"
+            actionUrl = "/challenges/${challengeId}"
         )
     }
 
@@ -201,7 +201,7 @@ class NotificationService(
             title = "새로운 인증 업로드",
             message = "'${challengeName}' 그룹에서 ${participantName}님이 새로운 인증을 업로드했습니다.",
             relatedId = challengeLogId,
-            actionUrl = "/challenges/${challengeId}/approvals"
+            actionUrl = "/manage/${challengeId}"
         )
     }
 
@@ -237,7 +237,7 @@ class NotificationService(
             title = "승인 대기 인증 요약",
             message = "'${challengeName}' 그룹에 승인 대기 중인 인증이 ${pendingCount}개 있습니다. 확인해주세요.",
             relatedId = challengeId,
-            actionUrl = "/challenges/${challengeId}/approvals"
+            actionUrl = "/manage/${challengeId}"
         )
     }
 }

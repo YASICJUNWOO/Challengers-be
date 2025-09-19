@@ -31,8 +31,13 @@ data class UserResponse(
 }
 
 data class SignupRequest(
+    @field:NotBlank(message = "이메일은 필수입니다.")
+    @field:Email(message = "유효한 이메일 형식이어야 합니다.")
+    val email: String,
+
     @field:NotBlank(message = "로그인 ID는 필수입니다.")
-    @field:Size(min = 3, max = 30, message = "로그인 ID는 3자 이상 30자 이하여야 합니다.")
+    @field:Size(min = 2, max = 20, message = "로그인 ID는 2자 이상 20자 이하여야 합니다.")
+    @field:Pattern(regexp = "^[a-zA-Z0-9_-]+$", message = "로그인 ID는 영문, 숫자, 언더스코어, 하이픈만 사용 가능합니다.")
     val loginId: String,
 
     @field:NotBlank(message = "비밀번호는 필수입니다.")

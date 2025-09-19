@@ -12,8 +12,13 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import jakarta.persistence.EntityManager
+import jakarta.persistence.PersistenceContext
 import java.time.LocalDate
+import java.time.LocalDateTime
 import kotlin.random.Random
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.isAccessible
 
 @Service
 @Transactional(readOnly = true)
@@ -24,6 +29,9 @@ class ChallengeService(
     private val notificationService: NotificationService,
     private val userService: UserService
 ) {
+
+    @PersistenceContext
+    private lateinit var entityManager: EntityManager
 
     @Transactional
     fun createChallenge(
@@ -138,26 +146,45 @@ class ChallengeService(
             throw IllegalArgumentException("그룹 수정 권한이 없습니다.")
         }
 
-        // 기존 엔티티를 삭제하고 새로운 엔티티 생성
-        challengeRepository.delete(existingChallenge)
+        // Validate the updated data if provided
+        val finalStartDate = startDate ?: existingChallenge.startDate
+        val finalEndDate = endDate ?: existingChallenge.endDate
+        val finalMaxMembers = maxMembers ?: existingChallenge.maxMembers
 
+        validateChallengeData(finalStartDate, finalEndDate, finalMaxMembers)
+
+        // Use EntityManager to create a managed copy with same ID
+        // Detach the existing entity first to avoid conflicts
+        entityManager.detach(existingChallenge)
+
+        // Create updated entity with same ID using reflection approach
         val updatedChallenge = Challenge(
             name = name ?: existingChallenge.name,
             description = description ?: existingChallenge.description,
             category = category ?: existingChallenge.category,
             difficulty = difficulty ?: existingChallenge.difficulty,
             duration = duration ?: existingChallenge.duration,
-            startDate = startDate ?: existingChallenge.startDate,
-            endDate = endDate ?: existingChallenge.endDate,
-            maxMembers = maxMembers ?: existingChallenge.maxMembers,
+            startDate = finalStartDate,
+            endDate = finalEndDate,
+            maxMembers = finalMaxMembers,
             leader = existingChallenge.leader,
             status = existingChallenge.status,
             coverImageUrl = coverImageUrl ?: existingChallenge.coverImageUrl,
             reward = reward ?: existingChallenge.reward,
-            tags = tags ?: existingChallenge.tags
+            tags = tags ?: existingChallenge.tags,
+            isPrivate = existingChallenge.isPrivate,
+            inviteCode = existingChallenge.inviteCode,
+            leaderRole = existingChallenge.leaderRole
         )
 
-        return challengeRepository.save(updatedChallenge)
+        // Use reflection to set the ID field preserving the original ID
+        setEntityId(updatedChallenge, existingChallenge.id)
+
+        // Use reflection to set audit fields to preserve them
+        setEntityAuditFields(updatedChallenge, existingChallenge.createdAt, existingChallenge.updatedAt)
+
+        // Use merge instead of save to ensure update instead of insert
+        return entityManager.merge(updatedChallenge)
     }
 
     @Transactional
@@ -315,7 +342,8 @@ class ChallengeService(
                 notificationService.createApplicationApprovedNotification(
                     userId = application.user.id!!,
                     applicationId = application.id.toString(),
-                    challengeName = challenge.name
+                    challengeName = challenge.name,
+                    challengeId = challenge.id.toString()
                 )
             }
             ApplicationStatus.REJECTED -> {
@@ -524,5 +552,35 @@ class ChallengeService(
     fun getChallengeByInviteCode(inviteCode: String): Challenge {
         return challengeRepository.findByInviteCode(inviteCode)
             ?: throw NoSuchElementException("유효하지 않은 초대 코드입니다: $inviteCode")
+    }
+
+    /**
+     * Reflection helper to set entity ID while preserving immutability design
+     */
+    private fun setEntityId(entity: Any, id: Long?) {
+        try {
+            val idField = entity::class.java.getDeclaredField("id")
+            idField.isAccessible = true
+            idField.set(entity, id)
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to set entity ID via reflection", e)
+        }
+    }
+
+    /**
+     * Reflection helper to set audit fields while preserving immutability design
+     */
+    private fun setEntityAuditFields(entity: Any, createdAt: LocalDateTime, updatedAt: LocalDateTime) {
+        try {
+            val createdAtField = entity::class.java.getDeclaredField("createdAt")
+            createdAtField.isAccessible = true
+            createdAtField.set(entity, createdAt)
+
+            val updatedAtField = entity::class.java.getDeclaredField("updatedAt")
+            updatedAtField.isAccessible = true
+            updatedAtField.set(entity, updatedAt)
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to set audit fields via reflection", e)
+        }
     }
 }

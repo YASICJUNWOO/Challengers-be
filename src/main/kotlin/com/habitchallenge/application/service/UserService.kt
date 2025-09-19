@@ -17,7 +17,11 @@ class UserService(
 ) {
 
     @Transactional
-    fun createUser(loginId: String, password: String, nickname: String, role: UserRole = UserRole.MEMBER): User {
+    fun createUser(email: String, loginId: String, password: String, nickname: String, role: UserRole = UserRole.MEMBER): User {
+        if (userRepository.existsByEmail(email)) {
+            throw IllegalArgumentException("이미 존재하는 이메일입니다.")
+        }
+
         if (userRepository.existsByLoginId(loginId)) {
             throw IllegalArgumentException("이미 존재하는 로그인 ID입니다.")
         }
@@ -28,6 +32,7 @@ class UserService(
 
         val encodedPassword = passwordEncoder.encode(password)
         val user = User(
+            email = email,
             loginId = loginId,
             password = encodedPassword,
             nickname = nickname,

@@ -9,6 +9,7 @@ import java.util.*
 @Repository
 interface UserRepository : JpaRepository<User, Long> {
     fun findByLoginId(loginId: String): Optional<User>
+    fun existsByEmail(email: String): Boolean
     fun existsByLoginId(loginId: String): Boolean
     fun existsByNickname(nickname: String): Boolean
     fun findByRole(role: UserRole, pageable: Pageable): Page<User>
