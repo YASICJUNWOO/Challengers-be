@@ -385,6 +385,24 @@ challenge_groups (1) ←→ (1) users [leader_id]
   - Request/Response 스키마 자동 생성
   - API 테스트 및 검증 기능 포함
 
+### v1.8.1 (2025-09-19): README.md 소개 페이지 구축 ✅
+- ✅ **README.md 작성**: 프로젝트 공식 소개 페이지 완성
+  - 한글/영문 프로젝트 설명 및 개요 작성
+  - 주요 기능 5개 카테고리 상세 설명 (사용자 관리, 챌린지 관리, 활동 인증, 알림 시스템, 통계 분석)
+  - 기술 스택 및 아키텍처 정보 포함
+- ✅ **실행 가이드**: 개발 환경 설정 및 실행 방법 상세 기술
+  - Gradle 빌드 및 테스트 명령어 가이드
+  - 접속 정보 (API Server, H2 Console, Swagger UI) 제공
+  - 기본 데모 계정 정보 포함
+- ✅ **API 문서 안내**: Swagger UI 및 API 엔드포인트 사용법 가이드
+  - 주요 API 카테고리별 엔드포인트 목록 제공
+  - API_PROTOCOL.md 참조 가이드 추가
+- ✅ **개발자 가이드**: 프로젝트 구조, 아키텍처 원칙, 개발 규칙 설명
+  - DDD-lite 구조 및 Clean Architecture 설명
+  - 스펙 문서 시스템 및 변경 관리 프로세스 안내
+  - 보안 설정 및 JWT 인증 정보 포함
+- ✅ **기여 가이드**: 오픈소스 기여 방법 및 개발 환경 설정 안내
+
 ## Deployment Notes
 - **Docker Support**: 향후 컨테이너화 예정
 - **CI/CD**: GitHub Actions 파이프라인 구축 예정
