@@ -19,7 +19,7 @@ WORKDIR /app
 COPY --from=build /app/build/libs/*.jar app.jar
 
 # Render가 포트 감지할 수 있도록
-EXPOSE 8080
+EXPOSE 8888
 
 # 컨테이너 시작 시 실행 명령
 CMD ["java", "-jar", "app.jar"]
