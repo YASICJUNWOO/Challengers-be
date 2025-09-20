@@ -30,4 +30,4 @@ logging:
   level:
     com.habitchallenge: DEBUG
 server:
-  port: 8888
+  port: ${PORT:8080}

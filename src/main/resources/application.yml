@@ -44,4 +44,4 @@ springdoc:
     version: "1.7.0"
 
 server:
-  port: ${PORT:8080}
+  port: 8888
