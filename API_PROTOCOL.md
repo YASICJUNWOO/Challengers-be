@@ -32,6 +32,53 @@
   }
   ```
 
+### POST /api/auth/google
+- **Description**: Google OAuth 로그인
+- **Headers**
+  - Content-Type: application/json
+- **Request Body**
+  ```typescript
+  {
+    token: string;  // Google OAuth id_token
+  }
+  ```
+- **Response Body**
+  ```typescript
+  {
+    token: string;     // JWT 토큰
+    user: {            // 사용자 정보
+      id: string;
+      name: string;
+      loginId: string;
+      avatar?: string;
+      role: 'leader' | 'member';
+      createdAt: string; // ISO 8601
+    };
+  }
+  ```
+- **Error Responses**
+  - **401 Unauthorized**: Google 토큰 검증 실패
+    ```typescript
+    {
+      error: "토큰 검증 실패";
+      message: string;
+    }
+    ```
+  - **400 Bad Request**: 이미 존재하는 이메일
+    ```typescript
+    {
+      error: "잘못된 요청";
+      message: string;
+    }
+    ```
+  - **500 Internal Server Error**: 서버 오류
+    ```typescript
+    {
+      error: "서버 오류";
+      message: "Google 로그인 처리 중 오류가 발생했습니다.";
+    }
+    ```
+
 ### POST /api/auth/signup
 - **Description**: 사용자 회원가입
 - **Headers**

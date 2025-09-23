@@ -64,3 +64,8 @@ data class AuthResponse(
     val token: String,
     val user: UserResponse
 )
+
+data class GoogleLoginRequest(
+    @field:NotBlank(message = "Google 토큰은 필수입니다.")
+    val token: String
+)

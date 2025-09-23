@@ -35,6 +35,9 @@ dependencies {
     // Swagger/OpenAPI
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
 
+    // HTTP Client for Google API
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+
     // Database
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("com.h2database:h2")

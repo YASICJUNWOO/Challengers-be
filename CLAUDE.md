@@ -403,6 +403,33 @@ challenge_groups (1) ←→ (1) users [leader_id]
   - 보안 설정 및 JWT 인증 정보 포함
 - ✅ **기여 가이드**: 오픈소스 기여 방법 및 개발 환경 설정 안내
 
+### v1.10.0 (2025-09-23): Google OAuth Login System Implementation ✅
+- ✅ **Google OAuth Authentication**: Google Login API 완전 구현
+  - POST /api/auth/google 엔드포인트 추가
+  - Google OAuth id_token 검증 및 사용자 정보 추출
+  - 신규 사용자 자동 생성 또는 기존 사용자 로그인 처리
+  - JWT 토큰 발급 및 통합 인증 시스템
+- ✅ **GoogleAuthService**: Google API 통신 서비스 구현
+  - https://oauth2.googleapis.com/tokeninfo API 연동
+  - 토큰 검증 실패 시 상세 에러 처리 (401/400/500)
+  - WebClient 기반 비동기 HTTP 통신
+  - GoogleUserInfo 데이터 클래스 정의
+- ✅ **User Entity 확장**: Google OAuth 지원 필드 추가
+  - googleId 필드 추가 (Google 사용자 고유 ID)
+  - authProvider enum 추가 (LOCAL/GOOGLE)
+  - password 필드 nullable 변경 (OAuth 사용자 대응)
+  - 중복 방지를 위한 unique constraint 설정
+- ✅ **UserService 확장**: Google OAuth 사용자 관리 로직
+  - findOrCreateGoogleUser 메소드 구현
+  - 이메일 중복 검사 및 예외 처리
+  - 자동 loginId 생성 (이메일 기반 + 중복 방지)
+  - Google 사용자 프로필 이미지 연동
+- ✅ **UserRepository 확장**: Google OAuth 쿼리 메소드 추가
+  - findByGoogleId, existsByGoogleId 메소드
+  - findByEmail 메소드 추가
+- ✅ **Dependencies Update**: spring-boot-starter-webflux 추가
+- ✅ **API_PROTOCOL.md Update**: Google OAuth API 스펙 완전 문서화
+
 ### v1.9.0 (2025-09-22): Challenge Deletion API Implementation 🔄
 - 🔄 **Challenge Deletion Endpoint**: DELETE /api/challenges/{id} 엔드포인트 구현
   - 리더 권한 검증 및 데이터 무결성 보장 로직
