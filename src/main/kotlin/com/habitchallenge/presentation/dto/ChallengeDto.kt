@@ -199,3 +199,27 @@ data class UpdateChallengeRequest(
 
     val tags: List<String>?
 )
+
+data class DeleteChallengeResponse(
+    val success: Boolean,
+    val message: String,
+    val deletedAt: String  // ISO 8601 datetime format
+) {
+    companion object {
+        fun success(deletedAt: String = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME)): DeleteChallengeResponse {
+            return DeleteChallengeResponse(
+                success = true,
+                message = "챌린지가 성공적으로 삭제되었습니다.",
+                deletedAt = deletedAt
+            )
+        }
+
+        fun failure(message: String): DeleteChallengeResponse {
+            return DeleteChallengeResponse(
+                success = false,
+                message = message,
+                deletedAt = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            )
+        }
+    }
+}

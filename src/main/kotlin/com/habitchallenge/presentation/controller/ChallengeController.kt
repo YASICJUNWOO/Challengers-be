@@ -341,4 +341,27 @@ class ChallengeController(
         val stats = challengeService.getParticipationStats(id, user, userId, parsedStartDate, parsedEndDate)
         return ResponseEntity.ok(stats)
     }
+
+    @DeleteMapping("/{id}")
+    fun deleteChallenge(
+        @PathVariable id: Long,
+        @AuthenticationPrincipal user: User
+    ): ResponseEntity<DeleteChallengeResponse> {
+        return try {
+            val deletedAt = challengeService.deleteChallenge(id, user)
+            val response = DeleteChallengeResponse.success(
+                deletedAt.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            )
+            ResponseEntity.ok(response)
+        } catch (e: NoSuchElementException) {
+            val response = DeleteChallengeResponse.failure("존재하지 않는 챌린지입니다.")
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(response)
+        } catch (e: IllegalArgumentException) {
+            val response = DeleteChallengeResponse.failure(e.message ?: "챌린지 삭제 권한이 없습니다.")
+            ResponseEntity.status(HttpStatus.FORBIDDEN).body(response)
+        } catch (e: Exception) {
+            val response = DeleteChallengeResponse.failure("챌린지 삭제 중 오류가 발생했습니다.")
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response)
+        }
+    }
 }

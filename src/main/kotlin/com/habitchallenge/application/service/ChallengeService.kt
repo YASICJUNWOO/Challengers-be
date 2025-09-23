@@ -680,4 +680,34 @@ class ChallengeService(
 
         return streak
     }
+
+    @Transactional
+    fun deleteChallenge(challengeId: Long, currentUser: User): java.time.LocalDateTime {
+        val challenge = findById(challengeId)
+
+        // Authorization check - only challenge leader can delete
+        if (challenge.leader.id != currentUser.id) {
+            throw IllegalArgumentException("챌린지 삭제 권한이 없습니다.")
+        }
+
+        // Delete related data in correct order to avoid foreign key constraint issues
+
+        // 1. Delete challenge logs (activity submissions)
+        challengeLogRepository.deleteByChallenge(challenge)
+
+        // 2. Delete challenge applications (join requests)
+        challengeApplicationRepository.deleteByChallenge(challenge)
+
+        // 3. Delete participations (user memberships)
+        participationRepository.deleteByChallenge(challenge)
+
+        // 4. Delete challenge-related notifications
+        notificationService.deleteByChallengeId(challengeId.toString())
+
+        // 5. Finally, delete the challenge itself
+        challengeRepository.delete(challenge)
+
+        // Return deletion timestamp
+        return java.time.LocalDateTime.now()
+    }
 }

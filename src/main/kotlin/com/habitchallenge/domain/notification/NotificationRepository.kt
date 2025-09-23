@@ -32,4 +32,8 @@ interface NotificationRepository : JpaRepository<Notification, Long> {
     fun markAllAsReadByUser(@Param("user") user: User): Int
 
     fun existsByIdAndUser(id: Long, user: User): Boolean
+
+    @Modifying
+    @Query("DELETE FROM Notification n WHERE n.relatedId = :challengeId")
+    fun deleteByRelatedId(@Param("challengeId") challengeId: String)
 }

@@ -403,6 +403,18 @@ challenge_groups (1) ←→ (1) users [leader_id]
   - 보안 설정 및 JWT 인증 정보 포함
 - ✅ **기여 가이드**: 오픈소스 기여 방법 및 개발 환경 설정 안내
 
+### v1.9.0 (2025-09-22): Challenge Deletion API Implementation 🔄
+- 🔄 **Challenge Deletion Endpoint**: DELETE /api/challenges/{id} 엔드포인트 구현
+  - 리더 권한 검증 및 데이터 무결성 보장 로직
+  - 연관 데이터 정리 (참여자, 인증 로그, 신청서, 알림)
+  - 삭제 결과 응답 DTO (success, message, deletedAt) 구현
+- 🔄 **Service Layer Enhancement**: ChallengeService에 deleteChallenge 메소드 추가
+  - 리더 권한 검증 (403 Forbidden 에러 처리)
+  - 존재하지 않는 챌린지 처리 (404 Not Found)
+  - Soft delete vs Hard delete 정책 적용
+- 🔄 **DTO Implementation**: DeleteChallengeResponse DTO 클래스 생성
+- 🔄 **API_PROTOCOL.md Update**: 신규 삭제 API 스펙 문서화
+
 ## Deployment Notes
 - **Docker Support**: 향후 컨테이너화 예정
 - **CI/CD**: GitHub Actions 파이프라인 구축 예정

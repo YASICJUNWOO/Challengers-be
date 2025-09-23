@@ -5,6 +5,7 @@ import com.habitchallenge.domain.user.User
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
@@ -32,4 +33,8 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     fun existsByUserAndChallenge(user: User, challenge: Challenge): Boolean
 
     fun existsByUserAndChallengeAndStatus(user: User, challenge: Challenge, status: ParticipationStatus): Boolean
+
+    @Modifying
+    @Query("DELETE FROM Participation p WHERE p.challenge = :challenge")
+    fun deleteByChallenge(@Param("challenge") challenge: Challenge)
 }

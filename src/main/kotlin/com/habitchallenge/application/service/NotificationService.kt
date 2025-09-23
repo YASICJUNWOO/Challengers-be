@@ -240,4 +240,9 @@ class NotificationService(
             actionUrl = "/manage/${challengeId}"
         )
     }
+
+    @Transactional
+    fun deleteByChallengeId(challengeId: String) {
+        notificationRepository.deleteByRelatedId(challengeId)
+    }
 }

@@ -349,6 +349,24 @@
   Challenge // 위의 Challenge 인터페이스와 동일
   ```
 
+### DELETE /api/challenges/{id}
+- **Description**: 챌린지 삭제 (리더 전용)
+- **Headers**
+  - Authorization: Bearer {token}
+- **Request Params**
+  - id: number (챌린지 ID)
+- **Response Body**
+  ```typescript
+  {
+    success: boolean;               // 삭제 성공 여부
+    message: string;                // 삭제 결과 메시지
+    deletedAt: string;              // 삭제 시간 (ISO 8601)
+  }
+  ```
+- **Error Responses**
+  - 403 Forbidden: 리더가 아닌 사용자가 삭제 시도
+  - 404 Not Found: 존재하지 않는 챌린지 ID
+
 ### PUT /api/challenges/{id}/join
 - **Description**: 챌린지 참여 (Legacy 엔드포인트)
 - **Headers**
@@ -768,6 +786,22 @@
 ---
 
 ## 변경 로그
+
+### 2025-09-22 20:30 KST: 챌린지 삭제 API 엔드포인트 추가 ✅
+- ✅ **DELETE /api/challenges/{id}**: 챌린지 삭제 (리더 전용)
+  - 리더 권한 검증 및 데이터 무결성 보장 로직
+  - 연관 데이터 정리 (참여자, 인증 로그, 신청서, 알림)
+  - 삭제 결과 응답 DTO (success, message, deletedAt) 구현
+- ✅ **ChallengeService 확장**: deleteChallenge 메소드 추가
+  - 리더 권한 검증 (403 Forbidden 에러 처리)
+  - 존재하지 않는 챌린지 처리 (404 Not Found)
+  - Hard delete 정책 적용으로 완전한 데이터 정리
+- ✅ **Repository 확장**: 연관 데이터 삭제를 위한 @Modifying 쿼리 추가
+  - ParticipationRepository.deleteByChallenge()
+  - ChallengeApplicationRepository.deleteByChallenge()
+  - ChallengeLogRepository.deleteByChallenge()
+  - NotificationRepository.deleteByRelatedId()
+- ✅ **DeleteChallengeResponse DTO**: 삭제 응답 전용 DTO 클래스 생성
 
 ### 2025-09-19 19:30 KST: 챌린지 통계 API 엔드포인트 추가 ✅
 - ✅ **GET /api/challenges/{id}/members/stats**: 챌린지 멤버별 통계 조회 (Streak, 달성률)
