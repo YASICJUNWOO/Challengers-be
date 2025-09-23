@@ -18,10 +18,6 @@ spring:
       hibernate:
         format_sql: true
 
-  h2:
-    console:
-      enabled: true
-
 jwt:
   secret: rU5jD7yJf9uB1mYpGxTqN8vFzWc2hR7tKj6pX1aQ4zL9oE3sH5vU7yW8xC9dZ2qB
   expiration: 86400000
