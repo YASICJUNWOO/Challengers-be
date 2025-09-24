@@ -430,6 +430,45 @@ challenge_groups (1) ←→ (1) users [leader_id]
 - ✅ **Dependencies Update**: spring-boot-starter-webflux 추가
 - ✅ **API_PROTOCOL.md Update**: Google OAuth API 스펙 완전 문서화
 
+### v1.11.0 (2025-09-24): User Profile Management & Password Reset System ✅
+- ✅ **User Profile Management**: 사용자 프로필 수정 및 비밀번호 변경 기능 구현
+  - PUT /api/users/{id}: 닉네임, 이메일 수정 API (본인 계정만 수정 가능)
+  - PUT /api/users/{id}/password: 비밀번호 변경 API (로컬 계정 전용)
+  - 권한 검증: 본인 계정만 수정 가능, 소셜 로그인 계정 비밀번호 변경 제한
+  - 중복 검사: 닉네임/이메일 중복 방지 로직 구현
+
+- ✅ **Password Reset System**: 3단계 보안 비밀번호 재설정 시스템 구현
+  - 1단계: POST /api/auth/password/reset/request - 이메일로 6자리 인증코드 발송
+  - 2단계: POST /api/auth/password/reset/verify - 인증코드 검증 후 임시 토큰 발급 (30분 유효)
+  - 3단계: POST /api/auth/password/reset/confirm - 임시 비밀번호 생성 및 이메일 발송
+  - 보안 강화: 요청 빈도 제한 (1시간 내 5회), 토큰 만료 처리, 소셜 계정 제외
+
+- ✅ **User Entity Enhancement**: User 모델 확장 및 응답 구조 개선
+  - loginType 및 provider 필드 추가 (로그인 유형 구분)
+  - 모든 사용자 응답에 email, loginType, provider 필드 포함
+  - User 엔티티 가변 필드 추가 (nickname, email, password 수정 지원)
+
+- ✅ **New Entities & Services**: 비밀번호 재설정 관련 신규 구현
+  - PasswordResetToken 엔티티: 인증코드 및 재설정 토큰 관리
+  - PasswordResetTokenRepository: 토큰 조회 및 검증 쿼리 메소드
+  - PasswordResetService: 비밀번호 재설정 비즈니스 로직 (인증코드 생성, 검증, 토큰 관리)
+  - EmailService: 이메일 발송 서비스 (현재 로그 출력, 실제 이메일 연동 예정)
+
+- ✅ **Database Schema Expansion**: password_reset_tokens 테이블 추가
+  - 인증코드, 만료시간, 사용여부, 재설정 토큰 관리
+  - 보안을 위한 인덱스 및 Unique 제약 조건 설정
+  - H2/PostgreSQL 호환 스키마 설계
+
+- ✅ **DTO & Validation**: 프로필 관리 및 비밀번호 재설정 DTO 구현
+  - UpdateUserRequest, ChangePasswordRequest: 프로필 수정 요청 DTO
+  - PasswordResetRequest, PasswordResetVerifyRequest, PasswordResetConfirmRequest: 비밀번호 재설정 3단계 DTO
+  - Bean Validation 적용 및 한글 오류 메시지 지원
+
+- ✅ **API Documentation Update**: API_PROTOCOL.md 완전 업데이트
+  - 5개 신규 엔드포인트 완전 문서화
+  - 모든 사용자 응답 모델에 새 필드 반영
+  - 에러 응답 및 보안 제약사항 상세 기록
+
 ### v1.9.0 (2025-09-22): Challenge Deletion API Implementation 🔄
 - 🔄 **Challenge Deletion Endpoint**: DELETE /api/challenges/{id} 엔드포인트 구현
   - 리더 권한 검증 및 데이터 무결성 보장 로직

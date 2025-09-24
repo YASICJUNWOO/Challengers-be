@@ -24,9 +24,12 @@
     user: {            // 사용자 정보
       id: string;
       name: string;
+      email: string;
       loginId: string;
       avatar?: string;
       role: 'leader' | 'member';
+      loginType: 'local' | 'social';
+      provider?: 'google';  // 소셜 로그인 제공자 (null for local)
       createdAt: string; // ISO 8601
     };
   }
@@ -49,9 +52,12 @@
     user: {            // 사용자 정보
       id: string;
       name: string;
+      email: string;
       loginId: string;
       avatar?: string;
       role: 'leader' | 'member';
+      loginType: 'local' | 'social';
+      provider?: 'google';  // 소셜 로그인 제공자 (null for local)
       createdAt: string; // ISO 8601
     };
   }
@@ -100,9 +106,12 @@
     user: {            // 사용자 정보
       id: string;
       name: string;
+      email: string;
       loginId: string;
       avatar?: string;
       role: 'leader' | 'member';
+      loginType: 'local' | 'social';
+      provider?: 'google';  // 소셜 로그인 제공자 (null for local)
       createdAt: string; // ISO 8601
     };
   }
@@ -118,6 +127,119 @@
     message: string;  // "로그아웃되었습니다."
   }
   ```
+
+### POST /api/auth/password/reset/request
+- **Description**: 비밀번호 재설정 인증코드 발송 (1단계)
+- **Headers**
+  - Content-Type: application/json
+- **Request Body**
+  ```typescript
+  {
+    email: string;  // 등록된 이메일 주소
+  }
+  ```
+- **Response Body**
+  ```typescript
+  {
+    message: string;   // "인증코드가 이메일로 발송되었습니다."
+    success: boolean;  // true
+  }
+  ```
+- **Error Responses**
+  - **404 Not Found**: 등록되지 않은 이메일
+    ```typescript
+    {
+      message: "등록되지 않은 이메일입니다.";
+      success: false;
+    }
+    ```
+  - **400 Bad Request**: 소셜 로그인 계정
+    ```typescript
+    {
+      message: "소셜 로그인 계정은 비밀번호 재설정을 할 수 없습니다.";
+      success: false;
+    }
+    ```
+  - **429 Too Many Requests**: 요청 빈도 제한
+    ```typescript
+    {
+      message: "너무 많은 요청을 보냈습니다. 잠시 후 다시 시도해주세요.";
+      success: false;
+    }
+    ```
+
+### POST /api/auth/password/reset/verify
+- **Description**: 인증코드 검증 및 임시 토큰 발급 (2단계)
+- **Headers**
+  - Content-Type: application/json
+- **Request Body**
+  ```typescript
+  {
+    email: string;  // 이메일 주소
+    code: string;   // 6자리 인증코드
+  }
+  ```
+- **Response Body**
+  ```typescript
+  {
+    message: string;   // "인증이 완료되었습니다."
+    token: string;     // 임시 재설정 토큰 (30분 유효)
+    success: boolean;  // true
+  }
+  ```
+- **Error Responses**
+  - **400 Bad Request**: 잘못된 인증코드
+    ```typescript
+    {
+      message: "잘못된 인증코드입니다.";
+      token: "";
+      success: false;
+    }
+    ```
+  - **410 Gone**: 만료된 인증코드
+    ```typescript
+    {
+      message: "만료된 코드입니다.";
+      token: "";
+      success: false;
+    }
+    ```
+
+### POST /api/auth/password/reset/confirm
+- **Description**: 임시 비밀번호 발급 및 재설정 완료 (3단계)
+- **Headers**
+  - Content-Type: application/json
+- **Request Body**
+  ```typescript
+  {
+    token: string;  // 2단계에서 발급받은 임시 토큰
+  }
+  ```
+- **Response Body**
+  ```typescript
+  {
+    message: string;            // "임시 비밀번호가 이메일로 발송되었습니다. 로그인 후 반드시 비밀번호를 변경해주세요."
+    temporaryPassword: string;  // 생성된 임시 비밀번호
+    success: boolean;           // true
+  }
+  ```
+- **Error Responses**
+  - **400 Bad Request**: 유효하지 않은 토큰
+    ```typescript
+    {
+      message: "유효하지 않은 토큰입니다.";
+      temporaryPassword: "";
+      success: false;
+    }
+    ```
+  - **410 Gone**: 만료된 토큰
+    ```typescript
+    {
+      message: "만료된 토큰입니다.";
+      temporaryPassword: "";
+      success: false;
+    }
+    ```
 
 ---
 
@@ -157,9 +279,12 @@
   {
     id: string;            // 사용자 ID
     name: string;          // 이름
+    email: string;         // 이메일
     loginId: string;       // 로그인 ID
     avatar?: string;       // 아바타 URL
     role: 'leader' | 'member';  // 역할
+    loginType: 'local' | 'social';  // 로그인 타입
+    provider?: 'google';   // 소셜 로그인 제공자 (null for local)
     createdAt: string;     // 생성일 (ISO 8601)
   }
   ```
@@ -173,9 +298,12 @@
   {
     id: string;            // 사용자 ID
     name: string;          // 이름
+    email: string;         // 이메일
     loginId: string;       // 로그인 ID
     avatar?: string;       // 아바타 URL
     role: 'leader' | 'member';  // 역할
+    loginType: 'local' | 'social';  // 로그인 타입
+    provider?: 'google';   // 소셜 로그인 제공자 (null for local)
     createdAt: string;     // 생성일 (ISO 8601)
   }
   ```
@@ -265,6 +393,94 @@
     empty: boolean;
   }
   ```
+
+### PUT /api/users/{id}
+- **Description**: 사용자 프로필 수정 (본인만 가능)
+- **Headers**
+  - Authorization: Bearer {token}
+  - Content-Type: application/json
+- **Request Params**
+  - id: number (사용자 ID)
+- **Request Body**
+  ```typescript
+  {
+    nickname?: string;  // 새 닉네임 (2-20자, 선택적)
+    email?: string;     // 새 이메일 (유효한 이메일 형식, 선택적)
+  }
+  ```
+- **Response Body**
+  ```typescript
+  {
+    id: string;            // 사용자 ID
+    name: string;          // 이름
+    email: string;         // 이메일
+    loginId: string;       // 로그인 ID
+    avatar?: string;       // 아바타 URL
+    role: 'leader' | 'member';  // 역할
+    loginType: 'local' | 'social';  // 로그인 타입
+    provider?: 'google';   // 소셜 로그인 제공자 (null for local)
+    createdAt: string;     // 생성일 (ISO 8601)
+  }
+  ```
+- **Error Responses**
+  - **403 Forbidden**: 다른 사용자 프로필 수정 시도
+    ```typescript
+    {
+      error: "접근 권한이 없습니다.";
+      message: "다른 사용자의 프로필을 수정할 수 없습니다.";
+    }
+    ```
+  - **400 Bad Request**: 중복된 닉네임/이메일
+    ```typescript
+    {
+      error: "잘못된 요청";
+      message: "이미 존재하는 닉네임입니다." | "이미 존재하는 이메일입니다.";
+    }
+    ```
+
+### PUT /api/users/{id}/password
+- **Description**: 비밀번호 변경 (본인만 가능, 로컬 계정만)
+- **Headers**
+  - Authorization: Bearer {token}
+  - Content-Type: application/json
+- **Request Params**
+  - id: number (사용자 ID)
+- **Request Body**
+  ```typescript
+  {
+    currentPassword: string;  // 현재 비밀번호 (필수)
+    newPassword: string;      // 새 비밀번호 (8-50자, 필수)
+  }
+  ```
+- **Response Body**
+  ```typescript
+  {
+    message: "비밀번호가 성공적으로 변경되었습니다.";
+    success: true;
+  }
+  ```
+- **Error Responses**
+  - **403 Forbidden**: 다른 사용자 비밀번호 변경 시도
+    ```typescript
+    {
+      error: "접근 권한이 없습니다.";
+      message: "다른 사용자의 비밀번호를 변경할 수 없습니다.";
+    }
+    ```
+  - **403 Forbidden**: 소셜 로그인 계정
+    ```typescript
+    {
+      error: "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다.";
+      message: "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다.";
+    }
+    ```
+  - **400 Bad Request**: 현재 비밀번호 불일치
+    ```typescript
+    {
+      error: "잘못된 요청";
+      message: "현재 비밀번호가 올바르지 않습니다.";
+    }
+    ```
 
 ---
 
@@ -878,5 +1094,32 @@
   - 읽지 않은 알림 개수 조회
 - ✅ **페이지네이션 표준화**: Spring Data의 Page<T> 구조 정확히 반영
 - ✅ **검증 규칙 문서화**: 실제 @Valid 애노테이션 기반 입력 검증 규칙 포함
+
+### 2025-09-24 17:00 KST: User Profile Management & Password Reset System ✅
+- ✅ **사용자 프로필 관리**: 프로필 수정 및 비밀번호 변경 API 구현
+  - PUT /api/users/{id}: 닉네임, 이메일 수정 (본인만 가능)
+  - PUT /api/users/{id}/password: 비밀번호 변경 (로컬 계정 전용)
+  - 권한 검증: 본인 계정만 수정 가능, 소셜 로그인 계정 비밀번호 변경 제한
+  - 중복 검사: 닉네임/이메일 중복 방지 로직 구현
+
+- ✅ **비밀번호 초기화 시스템**: 3단계 보안 프로세스 구현
+  - 1단계: POST /api/auth/password/reset/request - 이메일로 6자리 인증코드 발송
+  - 2단계: POST /api/auth/password/reset/verify - 인증코드 검증 후 임시 토큰 발급
+  - 3단계: POST /api/auth/password/reset/confirm - 임시 비밀번호 생성 및 이메일 발송
+  - 보안 강화: 요청 빈도 제한 (1시간 내 5회), 토큰 만료 처리, 소셜 계정 제외
+
+- ✅ **사용자 응답 모델 확장**: 모든 사용자 응답에 추가 필드 포함
+  - email: 사용자 이메일 주소
+  - loginType: 'local' | 'social' (로그인 유형 구분)
+  - provider: 'google' | null (소셜 로그인 제공자 정보)
+
+- ✅ **새로운 엔티티 및 서비스 구현**:
+  - PasswordResetToken 엔티티: 인증코드 및 토큰 관리
+  - PasswordResetService: 비밀번호 재설정 비즈니스 로직
+  - EmailService: 이메일 발송 서비스 (현재 로그 출력, 실제 이메일 연동 예정)
+
+- ✅ **데이터베이스 스키마 확장**: password_reset_tokens 테이블 추가
+  - 인증코드, 만료시간, 사용여부, 재설정 토큰 관리
+  - 보안을 위한 인덱스 및 Unique 제약 조건 설정
 
 **중요**: 이 문서는 백엔드 실제 구현을 100% 반영하며, 프론트엔드 API_PROTOCOL.md와의 차이점을 명확히 보여줍니다.

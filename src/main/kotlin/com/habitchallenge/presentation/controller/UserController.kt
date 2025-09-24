@@ -5,9 +5,8 @@ import com.habitchallenge.application.service.UserService
 import com.habitchallenge.domain.challengeapplication.ApplicationStatus
 import com.habitchallenge.domain.user.User
 import com.habitchallenge.domain.user.UserRole
-import com.habitchallenge.presentation.dto.ChallengeApplicationResponse
-import com.habitchallenge.presentation.dto.ChallengeResponse
-import com.habitchallenge.presentation.dto.UserResponse
+import com.habitchallenge.presentation.dto.*
+import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.ResponseEntity
@@ -105,5 +104,46 @@ class UserController(
         }
 
         return ResponseEntity.ok(challengeResponses)
+    }
+
+    @PutMapping("/{id}")
+    fun updateUser(
+        @PathVariable id: Long,
+        @Valid @RequestBody request: UpdateUserRequest,
+        @AuthenticationPrincipal currentUser: User
+    ): ResponseEntity<*> {
+        return try {
+            val updatedUser = userService.updateUser(id, request.nickname, request.email, currentUser.id!!)
+            val response = UserResponse.from(updatedUser)
+            ResponseEntity.ok(response)
+        } catch (e: SecurityException) {
+            ResponseEntity.status(403).body(mapOf("error" to "접근 권한이 없습니다.", "message" to e.message))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.status(400).body(mapOf("error" to "잘못된 요청", "message" to e.message))
+        } catch (e: NoSuchElementException) {
+            ResponseEntity.status(404).body(mapOf("error" to "사용자를 찾을 수 없습니다.", "message" to e.message))
+        }
+    }
+
+    @PutMapping("/{id}/password")
+    fun changePassword(
+        @PathVariable id: Long,
+        @Valid @RequestBody request: ChangePasswordRequest,
+        @AuthenticationPrincipal currentUser: User
+    ): ResponseEntity<*> {
+        return try {
+            userService.changePassword(id, request.currentPassword, request.newPassword, currentUser.id!!)
+            ResponseEntity.ok(mapOf("message" to "비밀번호가 성공적으로 변경되었습니다.", "success" to true))
+        } catch (e: SecurityException) {
+            ResponseEntity.status(403).body(mapOf("error" to "접근 권한이 없습니다.", "message" to e.message))
+        } catch (e: IllegalArgumentException) {
+            if (e.message?.contains("소셜 로그인") == true) {
+                ResponseEntity.status(403).body(mapOf("error" to "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다.", "message" to e.message))
+            } else {
+                ResponseEntity.status(400).body(mapOf("error" to "잘못된 요청", "message" to e.message))
+            }
+        } catch (e: NoSuchElementException) {
+            ResponseEntity.status(404).body(mapOf("error" to "사용자를 찾을 수 없습니다.", "message" to e.message))
+        }
     }
 }

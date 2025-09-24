@@ -10,16 +10,16 @@ import org.springframework.security.core.userdetails.UserDetails
 @Table(name = "users")
 class User(
     @Column(unique = true, nullable = false)
-    val email: String,
+    var email: String,
 
     @Column(unique = true, nullable = false, name = "login_id")
     val loginId: String,
 
     @Column(nullable = true)  // Google OAuth 사용자는 비밀번호가 없을 수 있음
-    private val password: String? = null,
+    private var password: String? = null,
 
     @Column(nullable = false)
-    val nickname: String,  // Maps to "name" in API response
+    var nickname: String,  // Maps to "name" in API response
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -39,6 +39,18 @@ class User(
     val authProvider: AuthProvider = AuthProvider.LOCAL  // 인증 제공자 (LOCAL/GOOGLE)
 ) : BaseEntity(), UserDetails {
 
+    // Computed property for loginType based on authProvider
+    val loginType: String get() = when (authProvider) {
+        AuthProvider.LOCAL -> "local"
+        AuthProvider.GOOGLE -> "social"
+    }
+
+    // Computed property for provider (for frontend compatibility)
+    val provider: String? get() = when (authProvider) {
+        AuthProvider.LOCAL -> null
+        AuthProvider.GOOGLE -> "google"
+    }
+
     override fun getAuthorities(): Collection<GrantedAuthority> {
         return listOf(SimpleGrantedAuthority("ROLE_${role.name}"))
     }
@@ -55,6 +67,16 @@ class User(
 
     // Public accessor for password (needed for UserService)
     fun getPasswordString(): String = password ?: ""
+
+    // Methods to update fields
+    fun updatePassword(newPassword: String) {
+        this.password = newPassword
+    }
+
+    fun updateProfile(newNickname: String? = null, newEmail: String? = null) {
+        newNickname?.let { this.nickname = it }
+        newEmail?.let { this.email = it }
+    }
 }
 
 enum class UserRole {

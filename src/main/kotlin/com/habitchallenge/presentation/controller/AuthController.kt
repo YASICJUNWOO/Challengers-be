@@ -2,6 +2,7 @@ package com.habitchallenge.presentation.controller
 
 import com.habitchallenge.application.service.GoogleAuthService
 import com.habitchallenge.application.service.GoogleTokenValidationException
+import com.habitchallenge.application.service.PasswordResetService
 import com.habitchallenge.application.service.UserService
 import com.habitchallenge.domain.user.UserRole
 import com.habitchallenge.infrastructure.security.JwtTokenProvider
@@ -19,7 +20,8 @@ class AuthController(
     private val userService: UserService,
     private val authenticationManager: AuthenticationManager,
     private val jwtTokenProvider: JwtTokenProvider,
-    private val googleAuthService: GoogleAuthService
+    private val googleAuthService: GoogleAuthService,
+    private val passwordResetService: PasswordResetService
 ) {
 
     @PostMapping("/signup")
@@ -96,6 +98,57 @@ class AuthController(
             // 기타 서버 오류
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(mapOf("error" to "서버 오류", "message" to "Google 로그인 처리 중 오류가 발생했습니다."))
+        }
+    }
+
+    @PostMapping("/password/reset/request")
+    fun requestPasswordReset(@Valid @RequestBody request: PasswordResetRequest): ResponseEntity<*> {
+        return try {
+            passwordResetService.sendResetCode(request.email)
+            ResponseEntity.ok(PasswordResetResponse("인증코드가 이메일로 발송되었습니다."))
+        } catch (e: NoSuchElementException) {
+            ResponseEntity.status(404).body(PasswordResetResponse("등록되지 않은 이메일입니다.", false))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.status(400).body(PasswordResetResponse(e.message ?: "잘못된 요청입니다.", false))
+        } catch (e: IllegalStateException) {
+            ResponseEntity.status(429).body(PasswordResetResponse(e.message ?: "요청이 너무 많습니다.", false))
+        } catch (e: Exception) {
+            ResponseEntity.status(500).body(PasswordResetResponse("서버 오류가 발생했습니다.", false))
+        }
+    }
+
+    @PostMapping("/password/reset/verify")
+    fun verifyPasswordResetCode(@Valid @RequestBody request: PasswordResetVerifyRequest): ResponseEntity<*> {
+        return try {
+            val token = passwordResetService.verifyCodeAndGenerateToken(request.email, request.code)
+            ResponseEntity.ok(PasswordResetVerifyResponse("인증이 완료되었습니다.", token))
+        } catch (e: IllegalArgumentException) {
+            if (e.message?.contains("만료") == true) {
+                ResponseEntity.status(410).body(PasswordResetVerifyResponse(e.message ?: "만료된 코드입니다.", "", false))
+            } else {
+                ResponseEntity.status(400).body(PasswordResetVerifyResponse(e.message ?: "잘못된 인증코드입니다.", "", false))
+            }
+        } catch (e: Exception) {
+            ResponseEntity.status(500).body(PasswordResetVerifyResponse("서버 오류가 발생했습니다.", "", false))
+        }
+    }
+
+    @PostMapping("/password/reset/confirm")
+    fun confirmPasswordReset(@Valid @RequestBody request: PasswordResetConfirmRequest): ResponseEntity<*> {
+        return try {
+            val temporaryPassword = passwordResetService.confirmResetAndGenerateTemporaryPassword(request.token)
+            ResponseEntity.ok(PasswordResetConfirmResponse(
+                "임시 비밀번호가 이메일로 발송되었습니다. 로그인 후 반드시 비밀번호를 변경해주세요.",
+                temporaryPassword
+            ))
+        } catch (e: IllegalArgumentException) {
+            if (e.message?.contains("만료") == true) {
+                ResponseEntity.status(410).body(PasswordResetConfirmResponse(e.message ?: "만료된 토큰입니다.", "", false))
+            } else {
+                ResponseEntity.status(400).body(PasswordResetConfirmResponse(e.message ?: "유효하지 않은 토큰입니다.", "", false))
+            }
+        } catch (e: Exception) {
+            ResponseEntity.status(500).body(PasswordResetConfirmResponse("서버 오류가 발생했습니다.", "", false))
         }
     }
 }
